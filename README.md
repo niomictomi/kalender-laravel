@@ -7,60 +7,221 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Proses setup
+Set up pada Database, Model, Controller, View, dan Route
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup Database / Migration
+```sh
+    Schema::create('calendars', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+        });
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
 
-## Learning Laravel
+## Model
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Siapkan fillable pada model
+```sh
+protected $fillable = [
+        'title', 'start', 'end'
+    ];
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-## Laravel Sponsors
+## Controller
+Buat methode Index
+```sh
+public function index(Request $request)
+    {
+        if ($request->ajax()) {
+            $data = Event::whereDate('start', '>=', $request->start)
+                       ->whereDate('end', '<=', $request->end)
+                       ->get(['id', 'title', 'start', 'end']);
+            return response()->json($data);
+        }
+        return view('kalender.index');
+    }
+```
+dan pada methode Ajax
+```sh
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+    public function ajax(Request $request)
+    {
+        switch ($request->type) {
+           case 'add':
+              $Kalender = Kalender::create([
+                  'title' => $request->title,
+                  'start' => $request->start,
+                  'end' => $request->end,
+              ]);
+              return response()->json($Kalender);
+             break;
 
-### Premium Partners
+           case 'update':
+              $Kalender = Kalender::find($request->id)->update([
+                  'title' => $request->title,
+                  'start' => $request->start,
+                  'end' => $request->end,
+              ]);
+              return response()->json($Kalender);
+             break;
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[CMS Max](https://www.cmsmax.com/)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
-- **[Romega Software](https://romegasoftware.com)**
 
-## Contributing
+           case 'delete':
+              $Kalender = Kalender::find($request->id)->delete();
+              return response()->json($Kalender);
+             break;
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+           default:
+             # code...
+             break;
 
-## Code of Conduct
+        }
+    }
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## Security Vulnerabilities
+## View
+Siapkan pada body HTML Blade
+```sh
+<div class="container">
+        <h1>Tutorial Buat Kalender dengan Laravel - Tomsolck</h1>
+        <div id='calendar'></div>
+    </div>
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```
+Dan pada script
+```sh
 
-## License
+    <script>
+        $(document).ready(function() {
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+            var SITEURL = "{{ url('/') }}";
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
+            var calendar = $('#calendar').fullCalendar({
+                editable: true,
+                events: SITEURL + "/fullcalender",
+                displayEventTime: false,
+                editable: true,
+
+                eventRender: function(event, element, view) {
+                    if (event.allDay === 'true') {
+                        event.allDay = true;
+
+                    } else {
+                        event.allDay = false;
+                    }
+                },
+
+                selectable: true,
+                selectHelper: true,
+
+                select: function(start, end, allDay) {
+                    var title = prompt('Event Title:');
+                    if (title) {
+                        var start = $.fullCalendar.formatDate(start, "Y-MM-DD");
+                        var end = $.fullCalendar.formatDate(end, "Y-MM-DD");
+
+                        $.ajax({
+                            url: SITEURL + "/fullcalenderAjax",
+                            data: {
+                                title: title,
+                                start: start,
+                                end: end,
+                                type: 'add'
+                            },
+
+                            type: "POST",
+                            success: function(data) {
+                                displayMessage("Event Created Successfully");
+
+                                calendar.fullCalendar('renderEvent',
+                                    {
+                                        id: data.id,
+                                        title: title,
+                                        start: start,
+                                        end: end,
+                                        allDay: allDay
+
+                                    }, true);
+
+                                calendar.fullCalendar('unselect');
+                            }
+                        });
+                    }
+
+                },
+
+                eventDrop: function(event, delta) {
+
+                    var start = $.fullCalendar.formatDate(event.start, "Y-MM-DD");
+                    var end = $.fullCalendar.formatDate(event.end, "Y-MM-DD");
+
+                    $.ajax({
+
+                        url: SITEURL + '/fullcalenderAjax',
+                        data: {
+                            title: event.title,
+                            start: start,
+                            end: end,
+                            id: event.id,
+                            type: 'update'
+                        },
+
+                        type: "POST",
+
+                        success: function(response) {
+                            displayMessage("Event Updated Successfully");
+                        }
+
+                    });
+
+                },
+
+                eventClick: function(event) {
+
+                    var deleteMsg = confirm("Do you really want to delete?");
+                    if (deleteMsg) {
+                        $.ajax({
+                            type: "POST",
+                            url: SITEURL + '/fullcalenderAjax',
+                            data: {
+                                id: event.id,
+                                type: 'delete'
+                            },
+
+                            success: function(response) {
+                                calendar.fullCalendar('removeEvents', event.id);
+                                displayMessage("Event Deleted Successfully");
+                            }
+
+                        });
+
+                    }
+                }
+
+            });
+        });
+
+        function displayMessage(message) {
+
+            toastr.success(message, 'Event');
+
+        }
+    </script>
+```
+
+## ROute
+```sh
+Route::get('fullcalender', [CalendarController::class, 'index']);
+
+Route::post('fullcalenderAjax', [CalendarController::class, 'ajax']);
+
+```
