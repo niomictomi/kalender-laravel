@@ -1,4 +1,4 @@
-<p align="center"><a href="https://laravel.com" target="_blank">
+<p align="center"><a href="https://github.com/niomictomi/kalender-laravel" target="_blank">
 <img src="https://raw.githubusercontent.com/niomictomi/uuid-for-laravel/main/file/tomslock.png" width="400"></a></p>
 
 <p align="center">
@@ -226,3 +226,11 @@ Route::get('fullcalender', [CalendarController::class, 'index']);
 Route::post('fullcalenderAjax', [CalendarController::class, 'ajax']);
 
 ```
+
+
+## Hasil
+Berikut hasilnya
+<p align="center"><a href="https://github.com/niomictomi/kalender-laravel" target="_blank">
+<img src="https://github.com/niomictomi/kalender-laravel/blob/master/public/sskalender.png" height="300"></p>
+
+
